@@ -1,7 +1,116 @@
-# ROS2安装方案-小鱼一键安装
+# GitHub remote
+```
+http://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@github.com/melancholyi/xxxx.git
+```
+# minipc安装ubuntu和环境配置记录
+[参考链接](https://blog.csdn.net/weixin_42915934/article/details/115212636)
+## 1 制作启动U盘
+### 1.1 UltraISO
+### 1.2 Ubuntu镜像下载
+[清华开源镜像站](https://mirrors.tuna.tsinghua.edu.cn/ubuntu-releases/)
+## 
+## 2 安装
+- 密码:sentry
+### 2.1 Boot
+F2 然后设置U盘启动为首选项，F10退出
+### 2.2 安装
+- 语言选择english
+- 选择最小安装
+- 清楚磁盘并安装
+- 时区选择上海
+## 3 环境配置
+修改密码
+```bash
+sudo passwd
+```
+更新apt-get
+```bash
+sudo apt-get update
+```
+安装ROS
+```bash
+fishros 一键安装
+```
+包管理安装
+```bash
+# 安装git
+sudo apt install git
+# 安装pip
+sudo apt-get install python3-pip 
+sudo pip install rosdepc
+sudo rosdepc init
+sudo rosdepc update
+```
+vscode远程连接方法  
+**ssh服务器端**，也就是小电脑端
+```bash
+# ssh远程连接 服务器包安装
+sudo apt install openssh-server
+
+# 打开这个ssh配置文件
+sudo gedit /etc/ssh/sshd_config
+
+# ctrl+F 修改以下部分并进行设置：
+Port 22
+PermitRootLogin yes     # 源文件中为#注释起来的，需要打开注释，并修改为yes
+PubkeyAuthentication yes # 源文件中为#注释起来的，需要打开注释，并修改为yes
+```
+ssh客户端，VSCODE自己电脑端
+- 扩展， Remote-ssh安装
+- ctrl + shift + p 选择Remote-SSH : Connect to Host
+- 添加新的ssh,格式为 ssh -p 《portnum》 username@hostname
+- 然后配置文件 .ssh/config
+- 修改 HostName 的后面东西为小电脑的ip地址
+
+
+
+# ROS2及其他工具安装方案
+## 1 ROS2安装
 ```
 wget http://fishros.com/install -O fishros && . fishros
 ```
+## 2 rosdep  
+rosdep是一个ros的包管理器，自动配置工具包依赖  
+### 2.1 安装与使用
+```bash
+# 因为rosdep使用的国外网站进行更新，如果没有代理的话很难更新成功，所以可以按照以下步骤，使用国内小鱼这个人开发的一个 rosdepc工具
+
+sudo pip install rosdepc
+
+# 如果显示没有pip可以试试pip3。
+sudo pip3 install rosdepc
+
+# 如果pip3还没有
+sudo apt-get install python3-pip 
+sudo pip install rosdepc
+```
+[rosdepc安装方案连接](https://zhuanlan.zhihu.com/p/398754989)  
+### 2.2 使用
+```bash
+# 初始化和更新
+sudo rosdepc init
+sudo rosdepc update
+```
+### 2.3 补全依赖
+rosdep的主要用途是安装工作空间中ros包的依赖，首先切换到工作空间下，然后运行下述命令即可安装该工作空间的所有依赖：
+```bash
+rosdep install --from-paths src --ignore-src -r -y
+``` 
+这里可能会遇见ERROR：  
+```bash
+ERROR: the following packages/stacks could not have their rosdep keys resovlved to system dependencies:
+rm_seruial_driver:Cannot locate rosdep definition for [serial_driver]
+```    
+原因和解决方案：
+这个就是简单的找不到这几个包，可能没装全。
+直接install一下，注意上面的分隔符是_,下面安装的包名字分隔符为-
+```bash
+sudo apt-get install ros-galactic-serial-driver
+```
+    
+
+---
+
 # linux 
 - ls命令
 ```
@@ -753,6 +862,59 @@ trajectory_builder_3d.lua
 trajectory_builder_2d.lua  
 trajectory_builder.lua
 ```
+
+# 相机模型
+## 相机坐标系
+![img](./noteSrc/camera_coordinate_system.png)
+
+## mindvision配置过程
+1 官网下载linux-SDK，[下载链接](https://www.mindvision.com.cn/rjxz/list_12.aspx?lcid=138)  
+2 解压进入文件夹，打开readme.pdf读完  
+3 运行install.sh
+```bash
+sudo su
+./install.sh
+# 然后重启
+```
+4 配置相机权限  
+首先查看是否识别到相机
+```bash
+lsusb
+
+# 出现这个则表示识别到USB相机
+# f622：idVendor d132:idProduct
+Bus 004 Device 005: ID f622:d132 MindVision SUA133GC
+``` 
+把88-mvusb.rules和99-mvusb.rules复制到 ```/etc/udev/rules.d```文件夹中，然后```sudo gedit 88-mvusb.rules```.
+```
+KERNEL=="*", ATTRS{idVendor}=="f622", ATTRS{idProduct}=="d132", MODE:="0777", SYMLINK+="mindvision" 
+```
+运行```demo/python_demo/```路径下的grub.py
+```
+python3 grab.py
+```
+抓取到图片的话说明相机可以用
+  
+自己工程中将linuxsdk中的include文件夹和lib文件夹中对应自己的平台对应的文件夹加入自己的工程，相当于src
+
+
+
+# 串口通信
+查看设备名称  
+```bash
+ll /dev
+# 出现以下类似的就是成功识别
+crw-rw---- 1 root dialout 188, 0 Aug  3 21:46 /dev/ttyUSB0
+```
+给予串口权限
+```bash
+sudo chmod 777 /dev/ttyUSB0 #按照自己的设备名字对ttyUSB0进行更改
+```
+安装ch340驱动
+```bash
+https://blog.csdn.net/qq_27558597/article/details/117900705
+```
+
 
 
 
