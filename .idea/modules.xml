@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/ROS2Humble-learnlog.iml" filepath="$PROJECT_DIR$/.idea/ROS2Humble-learnlog.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/RM23SentryNote.iml" filepath="$PROJECT_DIR$/.idea/RM23SentryNote.iml" />
     </modules>
   </component>
 </project>

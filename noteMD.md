@@ -1,7 +1,30 @@
-# GitHub remote
+# GIT
+## GitHub remote
 ```
-http://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@github.com/melancholyi/xxxx.git
+https://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@github.com/melancholyi/xxxx.git
 ```
+## 删除本地仓库
+```bash
+find . -name ".git" | xargs rm -Rf
+```
+
+# **CPP学习**
+## **智能指针**
+智能指针具有三种，分别为```shared_ptr, weak_ptr, unique_ptr```,三者具有各自的作用，建议搜一下资料，查看一下三者区别。这里简单记录一下我的理解，[参考链接](https://zhuanlan.zhihu.com/p/365414133)
+### **```shared_ptr```**
+- 托管**动态分配**对象，即普通局部变量和全局变量不可交给其托管
+- 多个shared_ptr可以通过赋值的方式托管同一个对象
+
+### **```weak_ptr```**
+- 解决shared_ptr相互引用时产生死锁问题(引用次数永远不会=0)
+- 弱引用，将 **<shared_ptr>** 对象```sp```赋值给 **<weak_ptr>** 对象```wp```时，不会增加sp的引用次数
+- 未重载->和*，不可直接访问对象，但具有lock()方法，```sp = wp.lock()```
+
+### **```unique_ptr```**
+- 独占所有权,up之间不可直接赋值或者复制构造
+- unique_ptr对象包装一个原始指针，并负责其生命周期
+
+
 # minipc安装ubuntu和环境配置记录
 [参考链接](https://blog.csdn.net/weixin_42915934/article/details/115212636)
 ## 1 制作启动U盘
@@ -203,7 +226,6 @@ cmake ..    //commend：这边可能会花费很长时间
 make
 sudo make install
 ```
-## 2 
 
 
 # ROS2学习笔记
@@ -266,12 +288,16 @@ colcon build --symlink-install
 ```
 colcon build --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 ```
+或者在package的CMakeLists.txt中添加一下下条命令
+```cmake
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+```
 ---
 ## 4 topic
 topic无返回，适合于单向或者大量数据传递
 ### ros2 topic 
 使用的demo
-```
+```bash
 ros2 run demo_nodes_py listener
 ros2 run demo_nodes_cpp talker 
 ```
@@ -637,8 +663,8 @@ package.xml
 
 **package.xml**
 ```xml
-<depend>geometry_msgs</depend>
-<depend>rosidl_default_generators</depend>
+<depend>geometry_msgs</depend>  
+<depend> rosidl_default_generators</depend>
 ```
 #### 2.3.4 colcon build
 #### 2.3.5 创建node pkg
@@ -663,8 +689,130 @@ ros2 pkg create example_robot_topicandsrv --build-type ament_cmake --dependencie
 
 ### 2.5 action
 
-## 3 Adcanced Usage
-### 3.1 tf2
+### 2.6 launch
+#### 2.6.1 语法
+
+```python
+# 目前最常用的
+from launch import LaunchDescription # 导入launch
+from launch_ros.actions import Node  # 导入node
+
+# 定义函数，此函数名称为固定的
+def generate_launch_description():
+    return LaunchDescription([
+        Node(
+            package = 'TODO:name package',
+            executable = 'TODO:name exe name',
+            name = 'TODO:name node name'
+            parameters = [
+                {'param1' : 'description1'},
+                {'param2' : 'description2'},
+                {'param3' : 'description3'},
+                # ...
+            ]
+
+        ),
+        Node(
+            # ...
+
+        ),
+    ])
+```
+#### 2.6.2 dependencies
+- package.xml
+  ```xml
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  ```
+- CMakeLists.txt
+  ```cmake
+  install(DIRECTORY launch
+    DESTINATION share/${PROJECT_NAME})
+  ```
+
+
+## **3 Intermediate Usage**
+### **3.1 TF2**
+#### **3.1.1 安装tf包**
+自动识别当前ROS2版本：```$(printenv ROS_DISTRO)``` ---> ```humble``` or ```forxy``` or ```galactic```
+```bash
+sudo apt-get install ros-$(printenv ROS_DISTRO)-turtle-tf2-py ros-$(printenv ROS_DISTRO)-tf2-tools ros-$(printenv ROS_DISTRO)-tf-transformations
+```
+#### **3.1.2 TF2工具**
+- **view_frames**  
+  frames和broadcast图形可视化
+  ```bash
+  ros2 run tf2_tools view_frames
+  ```
+- tf2_echo  
+  播报两个frame之间的姿态
+  格式：```ros2 run tf2_ros tf2_echo [reference_frame] [target_frame]```
+- rviz
+---
+#### **3.1.3 tf2 code**
+常用接口：
+- ```geometry_msgs/msg/TransformStamped```  
+  这表示在header.stamp时从坐标帧header.frame_id到坐标帧child_frame_id的转换(当前---->child)  
+  ```ros2 interface show geometry_msgs/msg/TransformStamped```
+  ```bash
+    std_msgs/Header header
+        builtin_interfaces/Time stamp
+            int32 sec
+            uint32 nanosec
+        string frame_id
+
+    string child_frame_id
+
+    Transform transform
+        Vector3 translation
+            float64 x
+            float64 y
+            float64 z
+        Quaternion rotation
+            float64 x 0
+            float64 y 0
+            float64 z 0
+            float64 w 1
+    ```
+
+**静态转换广播器static tranform broadcaster**  
+这个ros已经封装好了包，我们只需要调用即可。  
+cmd 格式:
+```bash
+ros2 run tf2_ros static_transform_publisher --x x --y y --z z --qx qx --qy qy --qz qz --qw qw --frame-id frame_id --child-frame-id child_frame_id
+```
+此node本质上是一个```topic-publisher```.    
+**topic name**为：```/tf_static```  ,它会publish 从```frame-id```到```child-frame-id```的平移向量-translation和旋转四元数-rotation，节点运行的信息如下所示：
+```
+[INFO] [1674102155.995393457] [static_transform_publisher_GwthsV8HNvh5sHcC]: Spinning until stopped - publishing transform
+translation: ('1.000000', '2.000000', '3.000000')
+rotation: ('0.000000', '0.000000', '0.000000', '1.000000')
+from 'world' to 'turtle1'
+```
+其中topic的消息类型msg为：```tf2_msgs/msg/TFMessage```
+```bash
+ros2 interface show tf2_msgs/msg/TFMessage
+# 则会显示其msg的具体构成，如下所示，其实就是一个数组geometry_msgs/TransformStamped[] transforms
+```
+写成launch格式的话如下所示：
+```python
+from launch import LaunchDescription
+from launch_ros.actions import Node
+
+def generate_launch_description():
+    return LaunchDescription([
+        Node(
+            package = 'tf2_ros',
+            executable = 'TODO:rename by yourself.origin name :static_transform_publisher',
+            arguments = ['--x', '0', '--y', '0', '--z', '1', '--yaw', '0', '--pitch', '0', '--roll', '0', '--frame-id', 'TODO:rename parent', '--child-frame-id', 'TODO:rename child']
+        )
+    ])
+```
+
+
+
+
+
 
 
 ## 4 建模与仿真
@@ -900,20 +1048,100 @@ python3 grab.py
 
 
 # 串口通信
-查看设备名称  
+## 查看设备名称  
 ```bash
 ll /dev
 # 出现以下类似的就是成功识别
 crw-rw---- 1 root dialout 188, 0 Aug  3 21:46 /dev/ttyUSB0
 ```
-给予串口权限
+## 给予串口权限
 ```bash
 sudo chmod 777 /dev/ttyUSB0 #按照自己的设备名字对ttyUSB0进行更改
 ```
-安装ch340驱动
+## 安装ch340驱动
+[ubuntu20.04-安装教程链接](https://blog.csdn.net/qq_27558597/article/details/117900705)
+但是Ubuntu22.04安装CH340的驱动时出现了一些问题，暂时搁置，下赛季更新
+
+# 坐标转换
+主要是相机坐标系和世界坐标系的转换，两者之间可以通过刚体运动(旋转和平移)进行转换，其中世界坐标系一般选用云台的IMU模块作为云台姿态获取方式,IMU可以选择C板或者外接IMU(WIT901C-TTL)
+## **坐标系**
+### 普通三维坐标系
+### **齐次坐标系**
+旋转矩阵和平移向量整合到一起的矩阵，称为齐次坐标系矩阵: <center> $Transform  = \left[\begin{matrix}
+    R_{3*3} & T_{3*1}\\
+    0_{3*3} & 1 
+\end{matrix}\right]$ </center>
+其中$R$为旋转矩阵
+
+## **旋转与平移**
+### 旋转
+### **1.1 欧拉角**
+| 角     | 旋转轴 | 方向                        |    
+|:------|:---:|:--------------------------|  
+| yaw   |  z  | 顺着z轴负方向看，xoy逆时针转动为正,顺时针为负 |  
+| pitch |  y  | 顺着y轴负方向看，xoz逆时针转动为正,顺时针为负 |
+| roll  |  x  | 顺着x轴负方向看，yoz逆时针转动为正,顺时针为负 |
+
+### **1.2 旋转矩阵**
+旋转矩阵，是旋转的另一种表示方式，表示同一个点在两种坐标系之间的转换约束关系，绕三轴旋转分别对应三个旋转矩阵。
+- 绕x轴旋转 $\alpha$ 
+$$
+R(x,\alpha) = 
+ \left[
+ \begin{matrix}
+   1 & 0 & 0 \\
+   0 & \cos\alpha & -\sin\alpha \\
+   0 & \sin\alpha & \cos\alpha
+  \end{matrix}
+  \right] \tag{roll}
+$$
+
+- 绕y轴旋转 $\beta$ 
+$$
+R(y,\beta) = 
+ \left[
+ \begin{matrix}
+   \cos\beta & 0 & \sin\beta \\
+   0 & 1 & 0 \\
+   -\sin\beta & 0 & \cos\beta
+  \end{matrix}
+  \right] \tag{pitch}
+$$
+
+- 绕z轴旋转 $\gamma$ 
+$$
+R(z,\gamma) = 
+ \left[
+ \begin{matrix}
+   \cos\gamma & -\sin\gamma & 0 \\
+   \sin\gamma & \cos\gamma & 0 \\
+   0 & 0 & 1
+  \end{matrix}
+  \right] \tag{yaw}
+$$
+
+这里旋转矩阵的关系一定要搞清楚，他是将变换后的矩阵转变会原来的坐标系，这里就以绕Z轴旋转举个例子，原始坐标系成为A-坐标系，将其绕Z旋转$\theta$度(顺着Z轴负方向,逆时针旋转$\theta$)，然后得到了B-坐标系。旋转矩阵为R(z,$\theta$),那么两轴之间的坐标转换关系为: <center>$\left[\begin{matrix}
+    x_A  \\ y_A \\ z_A
+    \end{matrix}\right]$  = $R$(z,$\theta$) * 
+    $\left[\begin{matrix}
+    x_B  \\ y_B \\ z_B
+    \end{matrix}\right]$</center>
+
+坐标系旋转有顺序，各轴具体的旋转矩阵根据旋转角度按照上面的矩阵进行计算得到，除了角度之外，三轴的旋转顺序也有很重要的影响，相同的角度而不同的旋转顺序也会导致不一样的旋转矩阵.例如这里使用ZYX的旋转顺序，将坐标系A转变到B.则
+旋转矩阵为:<center>$P_{A_{3*1}} = R(x,\alpha)*R(y,\beta)*R(z,\gamma) * P_{B_{3*1}}$ </center>
+
+
+### **1.3 四元数**
+阿巴啊巴(此处省略N个字)，注意顺序 ：
+
+$q = w +x∗\vec{i}+y∗\vec{j}+z∗\vec{k}$
+
+PS-集中表现方式的转换库-python ```transforms3d```
 ```bash
-https://blog.csdn.net/qq_27558597/article/details/117900705
+# 安装
+pip install transforms3d -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
+ ## 2 23RMSentry
 
 
 
