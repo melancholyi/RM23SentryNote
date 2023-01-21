@@ -400,6 +400,23 @@ ros2 service find example_interfaces/srv/AddTwoInts
 ---
 
 ## 6 message
+topic的publisher和subscriber使用msg通信，下面列出ROS2中自带和常见的message，用作记录和后续查阅  
+常见message
+- **时间相关**   
+  ```ros2 interface show builtin_interfaces/msg/...```
+- **基础数据类型**  
+  ```
+  ros2 interface show example_interfaces/msg/...
+  ros2 interface show std_msgs/msg...
+  ```
+- **几何相关**  
+  多用于机器人，具有以下定义好的接口信息:accel、inertia、point、polygon(多边形)、pose(position and orientation)、Quaternion(四元数)、transform(刚体变换，translation + rototion)、twist(线速度+角速度)  
+  ```ros2 interface show geometry_msgs/msg/...```
+- **传感器数据**  
+  收集传感器类型数据，具有一下定义好的接口信息：BattaryState、CameraInfo、Image、Imu、JointState、Joy、LaserScan、PointCloud等等机器人领域常用传感器  
+  ```ros2 interface show sensor_msgs/msg/...```
+- **tf2数据类型**  
+  tf2数据类型只有两个分别为：```TF2Error```和```TFMessage```
 
 
 # ROS2 Humble code usage note
@@ -718,7 +735,7 @@ def generate_launch_description():
         ),
     ])
 ```
-#### 2.6.2 dependencies
+#### **2.6.2 dependencies**
 - package.xml
   ```xml
   <exec_depend>launch</exec_depend>
@@ -733,6 +750,21 @@ def generate_launch_description():
 
 ## **3 Intermediate Usage**
 ### **3.1 TF2**
+2023/1/21记录，现在ROS2的TF2的教程比较少，官方和网上资源也是比较少，看完ROS2官方教程后可以参考ros1的documents多了解一些，[ROS1TF2Documents链接](http://wiki.ros.org/tf2)  
+除此之外，记住这句话：```A frame is a coordinate system```（TF2中将坐标系称为frame，且一般使用**right-handed**）  
+tf2简介，tf是transform的简称，2是第二代，tf1已经被弃用。tf2主要有以下几个```namespace``` （ROS1 wiki内）
+|name|function|main usage|  
+|:---:|:---|---:|
+|tf2|tf2原始库|```listener``` & ```broadcaster```|
+|tf2_ros|绑定ros和tf2，便于ros使用|详情见下|
+|tf2_msgs|tf2通信使用的interface|```TFMessage```|
+|tf2_tools|tf2相关工具|```view_frames``` & ```tf2_echo```|
+|tf2_eigen|convert tf2 data to eigen data structures|```doTransform(eigen_in,eigen_out,transform)```|
+|tf2_geometry_msgs|convert geometry_msgs to tf2 messages||
+|tf2_sensor_msgs|convert pointcloud2 messages through a geometry_msgs::Transform||
+|tf2_bullet|同上|| 
+|tf2_kdl|同上|| 
+
 #### **3.1.1 安装tf包**
 自动识别当前ROS2版本：```$(printenv ROS_DISTRO)``` ---> ```humble``` or ```forxy``` or ```galactic```
 ```bash
@@ -750,7 +782,7 @@ sudo apt-get install ros-$(printenv ROS_DISTRO)-turtle-tf2-py ros-$(printenv ROS
 - rviz
 ---
 #### **3.1.3 tf2 code**
-常用接口：
+**常用接口：**
 - ```geometry_msgs/msg/TransformStamped```  
   这表示在header.stamp时从坐标帧header.frame_id到坐标帧child_frame_id的转换(当前---->child)  
   ```ros2 interface show geometry_msgs/msg/TransformStamped```
@@ -774,7 +806,24 @@ sudo apt-get install ros-$(printenv ROS_DISTRO)-turtle-tf2-py ros-$(printenv ROS
             float64 z 0
             float64 w 1
     ```
+- ```tf2_msgs/msg/TFMessage```   
+  ```bash
+  ros2 interface show tf2_msgs/msg/TFMessage
+  # tfs数组
+  geometry_msgs/TransformStamped[] transforms
+  ```
+**```tf2_ros```-namespace:**  
+**TransformBroadcaster**  
+- 构造函数  ```TransformBroadcaster(TODO:Node ref)```
+- 广播函数   
+  ``` void sendTransform(const geometry_msgs::TransformStamped & transform);```
 
+**StaticTransformBroadcaster**
+- 同TransformBroadcaster
+
+---
+**Application**
+---
 **静态转换广播器static tranform broadcaster**  
 这个ros已经封装好了包，我们只需要调用即可。  
 cmd 格式:
@@ -808,6 +857,9 @@ def generate_launch_description():
         )
     ])
 ```
+---
+**转换广播器tranform broadcaster** 
+
 
 
 
@@ -1074,13 +1126,17 @@ sudo chmod 777 /dev/ttyUSB0 #按照自己的设备名字对ttyUSB0进行更改
 其中$R$为旋转矩阵
 
 ## **旋转与平移**
-### 旋转
+### 旋转  
+我们一般使用右手坐标系，如下图所示：
+
 ### **1.1 欧拉角**
 | 角     | 旋转轴 | 方向                        |    
 |:------|:---:|:--------------------------|  
 | yaw   |  z  | 顺着z轴负方向看，xoy逆时针转动为正,顺时针为负 |  
 | pitch |  y  | 顺着y轴负方向看，xoz逆时针转动为正,顺时针为负 |
-| roll  |  x  | 顺着x轴负方向看，yoz逆时针转动为正,顺时针为负 |
+| roll  |  x  | 顺着x轴负方向看，yoz逆时针转动为正,顺时针为负 |  
+
+![img](./noteSrc/CoordinateTransformation/rotation-eular.png)
 
 ### **1.2 旋转矩阵**
 旋转矩阵，是旋转的另一种表示方式，表示同一个点在两种坐标系之间的转换约束关系，绕三轴旋转分别对应三个旋转矩阵。
