@@ -765,6 +765,20 @@ tf2简介，tf是transform的简称，2是第二代，tf1已经被弃用。tf2�
 |tf2_bullet|同上|| 
 |tf2_kdl|同上|| 
 
+记录一下几个namespace的主要文件夹，用于学习和后续查阅  
+|tf2|tf2_ros|
+|:---|:---|
+|buffer_core.cpp/h|buffer_interface.h|
+|convert.h|buffer_server.cpp/h|
+|Quaternion.h|buffer_client.cpp/h|
+|Transform.h|buffer.cpp/h|
+|cache.xx|message_filter.h|
+|Vector3.h|static_transform_broadcaster.cpp/h|
+|Matrix3x3.h|transform_broadcaster.cpp/h|
+||transform_listener.cpp/h|
+|exceptions.h||
+|||
+
 #### **3.1.1 安装tf包**
 自动识别当前ROS2版本：```$(printenv ROS_DISTRO)``` ---> ```humble``` or ```forxy``` or ```galactic```
 ```bash
@@ -813,18 +827,271 @@ sudo apt-get install ros-$(printenv ROS_DISTRO)-turtle-tf2-py ros-$(printenv ROS
   geometry_msgs/TransformStamped[] transforms
   ```
 **```tf2_ros```-namespace:**  
-**TransformBroadcaster**  
+**TransformBroadcaster**    
+可以直接看一下源代码，```#include "tf2_ros/transform_broadcaster.h"```,本质上就是一个封装了topic-publisher和node的类，然后调用函数publish ```geometry_msgs::msg::TransformStamped```类型的数据。
+
 - 构造函数  ```TransformBroadcaster(TODO:Node ref)```
 - 广播函数   
   ``` void sendTransform(const geometry_msgs::TransformStamped & transform);```
-
+---
 **StaticTransformBroadcaster**
 - 同TransformBroadcaster
 
 ---
-**Application**
+**Buffer**   
+**源代码文件夹构成**   
+首先，说一下```buffer.cpp/h```这个文件夹构成  
+buffer部分应该是tf2-Listener最重要的一部分了，其与其他文件的关系如下图所示([截取自ROS1TF2文档](http://docs.ros.org/en/latest/api/tf2_ros/html/c++/buffer_8h.html)):
+![img](./noteSrc/CoordinateTransformation/tf2-buffer.xxx.png)
+buffer是```tf2_ros```命名空间中的一个重要文件夹，通过阅读ROS1 tf2文档和源代码，发现```buffer.h```所依赖中的重要头文件为```tf2/buffer_core.h和tf2_ros/buffer_interface.h``` 
+
 ---
-**静态转换广播器static tranform broadcaster**  
+
+- **```buffer_core.h```**  
+  
+其中```buffer_core.h```其实才是transform的核心方法所在，里面定义了以下重要函数。列出重要的API      
+|函数名|作用|  
+|:---|:---|
+|```transformMsgToTF2()```|msg--->TFMessage|
+|```BufferCore::lookupTransform()```|重载 : 2. 搜索tree结构，并调用```transformMsgToTF2```得到输出```geometry_msgs::tfs```|
+|```BufferCore::canTransform()```|重载 : 2, 判断是否存在此```transform```|
+---
+- **```tf2_ros/buffer_interface.h```**  
+
+![img](./noteSrc/CoordinateTransformation/tf2-tf2_ros-buffer_interface.png)
+此文件是虚基类,定义了```tf2_ros```包中的Buffer类的对外接口interface，具有以下接口,函数详细说明见此[链接文档(ROS1TF2wiki)](http://docs.ros.org/en/latest/api/tf2_ros/html/c++/buffer__interface_8h_source.html):<center>
+|函数名|作用|  
+|:---|:---|
+|```lookupTransform()```|两个重载版本|
+|``` canTransform()```|两个重载版本|
+|```transform()```|多个函数重载|
+</center>
+
+---
+
+- **```tf2_ros/buffer.h```**
+  
+此文件夹中只有```Buffer```这个class，其实例化了```BufferInterface```和```AsyncBufferInterface```，继承了```BufferCore```，所以此类的内容很简单，基本就是调用```BufferCore```类中实现的方法,所以其外接函数主要就是以下两个函数<center>
+|函数名|作用|说明|继承或实现自|
+|:---|:---|:---|:---|
+|```lookupTransform()```|查找tf|实现，四个重载版本|```BufferInterface```|
+|``` canTransform()```|isTF？|实现，四个重载版本|```BufferInterface```|
+|```waitForTransform()```|异步等待|实现，两个重载版本|```AsyncBufferInterface```|
+|```transform()```|in转换为out|继承|```BufferInterface```|
+</center>
+
+<br>
+
+---
+**TransformListener**  
+本质就是一个topic-subscriber结点，具有以下重要的数据成员,可以看到其实就是一个结点对象，之后就是两个```TFMessage```的subscription，分别对应dynamic和static,在之后就是最重要的```tf2::BufferCore```了，他是比较重要的，担任了坐标转换的绝大部分工作，详情请见上方Buffer部分的笔记
+- **membership**
+```cpp
+rclcpp::Node::SharedPtr optional_default_node_ = null
+ptr;
+rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr message_subscription_tf_;
+rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr message_subscription_tf_static_;
+tf2::BufferCore & buffer_;
+```
+- **public interface**  
+
+TransformListener类的public interface只有一个，那就是类的构造函数，参数为```tf2::BufferCore &buffer```，但我们一般应用时传入的是```tf2_ros::Buffer```类型的数据，通过构造一个这样的TransformListener，构造函数时就会将订阅器设置好，应该是将Listerner和buffer绑定在一起了，listener负责设置buffer，buffer负责获取和存储tf数据，然后获取transform信息，需要通过```tf2_ros::Buffer buffer```类的```lookTransform()```方法进行获取  
+
+--- 
+
+<br>
+
+**MessageFilter**  
+---
+**作用:**  
+**The ```tf2_ros::MessageFilter``` will take a subscription to any ROS 2 message with a header and cache it until it is possible to transform it into the target frame.**  
+
+```MessageFilter```此类继承自```message_filters::SimpleFilter<MSGType>```,并实现了```MessageFilterBase```虚基类    
+<br>
+
+其中虚基类中有四个外部public接口:
+```cpp
+//清空queue列表中的所有message
+virtual void clear() = 0;
+//设置目标frame
+virtual void setTargetFrame(const std::string & target_frame) = 0;
+virtual void setTargetFrames(const V_string & target_frames) = 0;
+//设置超时忍受时间
+virtual void setTolerance(const rclcpp::Duration & tolerance) = 0;
+```
+<br>
+
+而其还继承了```message_filters::SimpleFilter<MSGType>```这个类，所以也需要简单了解这个类构成，除此之外还了解了一下```message_filters```这个namespace的功能和构成.参考文档：[ROS1wiki](http://wiki.ros.org/message_filters)  
+
+**```message_filters```**  
+
+**设计模式Filter Pattern**  
+- Inputs are connected either through the filter's ```constructor``` or through the ```connectInput()``` method.
+  ```c++
+  A_filter A; 
+  // contact A and B --- constructor
+  B_filter B(A);
+  // contact A and C --- connectInput
+  C_filter C;
+  C.connectInput(A);
+  ```   
+- Outputs are connected through the ```registerCallback()``` method.
+  ```cpp
+  // 连接filter的输出和自己的callback函数
+  B.registerCallback(myCallbackFun);
+
+  //此函数会返回message_filters::Connection 类型的对象,可以通过调用disconnect()断开链接
+  ```
+---
+**```message_filters::Subscriber```**  
+&emsp; The Subscriber filter is simply a wrapper around a ROS subscription that provides a source for other filters. The Subscriber filter cannot connect to another filter's output, instead it uses a ROS topic as its input. 
+
+&emsp; ```message_filters::Subscriber``` filter仅仅是ROS subscription的一个wrapper(封装)类，为其他filters提供source。因此其不能像pattern中一样进行连接，取而代之的需要使用ROS 的```topic```作为他的输入。  
+&emsp; 自我感觉这个想是一个为了和ros交互方便的一个设计.示例代码如下所示:(<font color=Red>**这里做了ROS版本迁移可能有误，仅供参考,ROS1(官方文档)-->ROS2(下述代码)，不知正确与否**</font>)
+```cpp
+message_filters::Subscriber<geometry_msgs::msg::PointStamped> sub(this, "my_topic"); //param: node_ptr, "topic name" 
+ //订阅Callback
+sub.registerCallback(&PoseDrawer::msgCallback,this);
+```
+is the equivalent of:
+```cpp
+rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr sub =this->create_subscription<geometry_msgs::msg::PointStamped>("my_topic",1,myCallback);
+```
+```message_filters::Subscriber``` class 定义在```#include "message_filters/subscriber.h"```文件中,该文件的dependencies如下:  
+![img](./noteSrc/CoordinateTransformation/tf2-message_filters-subscriber.png)
+
+|```message_filters``` ns相关文件夹|main class|作用|
+|:---|:---|:---|
+|```mf/connection.h```|```Connection```|registerCallback()回调函数返回```Connection```类型对象|
+|```mf/simple_filter.h```| ```SimpleFilter``` |使用```SimpleFilter```类|
+|```mf/message_event.h```|```MessageEvent```|通过message创建```MessageEvent```对象|
+|```mf/parameter_adapter.h```|```ParamAdapter```|```ParamAdapter```类封装```MessageEvent```的struct,仅有一个方法```getParameter()```，返回constMSGptr类型数据|
+|```mf/signal1.h```|```Signal1```|```callback```操作-```add、remove 和 call```|
+
+(以上```mf``` 为 ```message_filters```缩写)
+
+<br>
+
+该类inherit(继承)了```message_filters::SubscriberBase```和```message_filters::SimpleFilter```  
+&emsp;其中```SubscriberBase```为```Subscriber```的虚基类.```virtual```方法主要是```subscribe()```,其有5个重载版本，比较常用的两个如下所示:
+```cpp
+subscribe(nodePtr, topicName, qos);
+subscribe(nodePtr, topicName, qos, SubscriptionOptions);
+```
+&emsp;而SimpleFilter也最多应用```registerCallback```绑定callback函数。因此总上Subscriber应用时也仅仅是创建一个sub。
+
+
+
+
+
+---  
+以下内容暂时没用到，等待后续更新  
+```message_filters::TimeSynchronizer```  
+```message_filters::TimeSequencer```
+```message_filters::Cache```
+```message_filters::sync_policies::ExactTime```
+```message_filters::sync_policies::ApproximateTime```
+```Chain```
+
+
+
+<br>
+
+---
+**```tf2_ros::MessageFilter```函数接口API**
+- **```MessageFilter```**(构造函数)
+  ```cpp
+  //重载版本1
+  MessageFilter(
+  BufferT & buffer,   
+  const std::string & target_frame,
+  uint32_t 
+  queue_size, //0表示infinite，无限，所以一定要设置一个大于0的数
+  const rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr & node_logging,
+  const rclcpp::node_interfaces::NodeClockInterface::SharedPtr & node_clock,
+
+  std::chrono::duration<TimeRepT, TimeT> buffer_timeout =
+  std::chrono::duration<TimeRepT, TimeT>::max())
+
+  //重载版本2
+  MessageFilter(
+  F & f,  //The filter to connect this filter's input to. Often will be a message_filters::Subscriber.
+  ...
+  //剩下六个参数同上
+  )
+  ```
+  构造函数中调用了一下三个函数
+  ```cpp
+  init(); //初始化类成员变量
+  setTargetFrame(target_frame); //setTargetFrame
+  connectInput(f);//见下,下述理解可能有误，仅供参考，详见源码
+  ```
+---
+- **```connectInput()```**  
+  Connect this filter's input to another filter's output. If this filter is already connected, disconnects first.
+  函数参数一般是class : ```message_filters::Subscriber```
+  ```cpp
+  // 源码比较简单，可以直接看一下
+  void connectInput(F & f)
+  {
+    message_connection_.disconnect();
+    message_connection_ = f.registerCallback(&MessageFilter::incomingMessage, this);
+  }
+  ```
+    首先断开已有链接，然后进行新的链接。而后就是封装```message_filters::SimpleFilter<MSGType>```中的方法,就是将输入过来的message和滤波器MessageFilter此类绑定起来，使用的函数是```registerCallback(MessageFilter::incomingMessage,this)```，他将callback函数(param1)与此类绑定在一起。内部是调用的```MessageFilter::add()```函数，将message添加到队列
+---
+
+
+- **```setTargetFrame()```&```setTargetFrames()```**  
+  功能如其名称,  
+  **param**  : ```const std::string & target_frame ```   
+  **retval** : ```void```
+---
+- **```setTolerance()```**  
+  设置忍受限度，也就是超时时间timeout  
+  **param**  : ```const rclcpp::Duration & tolerance```  
+  **retval** : ```void```
+---
+- **```clear()```**  
+  清空queue中的message
+---
+- **```setQueueSize()```**   
+  功能如其名称
+---
+- **```registerCallback()```**  
+  函数原型
+  ```cpp
+  template<typename T, typename P>
+  Connection registerCallback(void(T::*callback)(P), T* t)
+  ``` 
+  用在```MessageFilter```中参数含义如下   
+  **param1**  : ```&UserClassName::msgCallback``` 回调函数  
+  **param2** : ```this```, UserClassName  
+  另外，要知道的是此函数不是```MessageFilter```类定义的，而是从```message_filters::SimpleFilter<Type>```类中public继承过来的。所以想搞懂```MessageFilter```的基本原理，也需要简单了解下```message_filters```这个ros基本类库的基本构成和使用方法,参考文档：[ROS1wiki](http://wiki.ros.org/message_filters)
+
+
+
+**Exceptions**  
+定义的这个exceptions都在```#include "tf2/exceptions.h"```这个文件夹中，tf2中定义了以下几个Exceptions.<center>
+|exception|功能|备注|
+|:---|:---|:---|
+|```TransformException```|A base class for all tf2 exceptions|public继承自```std::runtime_error```|
+|```ConnectivityException```|两个frame在Reference Frame tree中未连接|public继承自```TransformException```|
+|```LookupException```|frame_id出错,tarFrame未在Reference Frame tree中|public继承自```TransformException```|
+|```ExtrapolationException```|访问超出当前限制的数据|public继承自```TransformException```|
+|```InvalidArgumentException```|参数错误，例如:Quaternion (0,0,0,0)|public继承自```TransformException```|
+|```TimeoutException```|超时|public继承自```TransformException```|
+</center>
+
+
+<br>
+<br>
+
+**Application**
+
+
+**静态转换广播器 StaticTranformBroadcaster**  
+
 这个ros已经封装好了包，我们只需要调用即可。  
 cmd 格式:
 ```bash
@@ -857,8 +1124,244 @@ def generate_launch_description():
         )
     ])
 ```
+
+<br>
+
 ---
-**转换广播器tranform broadcaster** 
+**转换广播器 TranformBroadcaster**   
+- **include**  
+```cpp
+#include "tf2_ros/transform_broadcaster.h"
+#include "geometry_msgs/msg/transform_stamped.hpp"
+#include "tf2/LinearMath/Quaternion.h"
+```
+- **frame_id & param declare**  
+  frame_id 通过名称唯一确定，因此可以使用param功能，创建结点时传入参数。
+  ```cpp
+  private:
+    std::string mFrameID;
+    std::string mChildFrameID;
+
+  //constructor 中declare:
+  mFrameID = this->declare_parameter<std::string>("frame_id","name1");
+  mChildFrameID = this->declare_parameter<std::string>("child_frame_id","name2");
+  ```
+- **broadcaster create**
+  ```cpp
+  //statement:
+  std::shared_ptr<tf2_ros::TransformBroadcaster> mTFBroadcaster;
+  //create:
+  mTFBroadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(*this);//param : node
+  ``` 
+- **tfs**
+  ```cpp
+  //define variable
+  geometry_msgs::msg::TransformStamped tfs;
+  //or
+  //std::vector<geometry_msgs::msg::TransformStamped> tfs_vec;
+
+  //set header
+  tfs.header.stamp = this->get_clock()->now();
+  tfs.header.frame_id = mFrameID;
+  
+  //set child_frame_id
+  tfs.child_frame_id = mChildFrameID;
+
+  //set transform-translation
+  tfs.transform.translation.x = ...;
+  tfs.transform.translation.y = ...;
+  tfs.transform.translation.z = ...;
+
+  //set transform-rotation
+  tf2::Quaternion quat;
+  //TODO:Assign a value to quat
+  tfs.transform.rotation.x = quat.x();
+  tfs.transform.rotation.y = quat.y();
+  tfs.transform.rotation.z = quat.z();
+  tfs.transform.rotation.w = quat.w();
+  ```
+- **send**  
+  ```
+  mTFBroadcaster->sendTransform(ts);
+  ```
+- launch
+  ```py
+  from launch import LaunchDescription
+  from launch_ros.actions import Node
+
+  def generate_launch_description():
+      return LaunchDescription([
+          Node(
+              package = 'myPkgName',
+              executable = 'myExeName',
+              name = 'nodeName',
+              parameters = [
+                  {'mFrameID': 'name1'},
+                  {'mChildFrameID': 'name2'}
+              ]
+          ),
+      ])
+  ```
+<br>
+
+---
+**转换监听器 TranformListener** 
+- **```include```**
+  ```cpp
+  #include "geometry_msgs/msg/transform_stamped.hpp"
+
+  //tf2_ros
+  #include "tf2_ros/transform_listener.h" 
+  #include "tf2_ros/buffer.h"
+  #include "tf2_ros/create_timer_ros.h"
+
+  //tf2
+  #include "tf2/exceptions.h"
+  ```
+- **```target_frame & self_frame & param```**  
+  依旧如上，需要声明param,并传参，来确定转换的dst frame 和 src frame
+
+- **```listener & buffer```**
+  ```cpp
+  /*** statement ***/
+  std::shared_ptr<tf2_ros::TransformListener> mTFListener;
+
+  std::unique_ptr<tf2_ros::Buffer> mTFBuffer  ;
+  
+  /*** init ***/
+  mTFBuffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
+  mTFListener = std::make_shared<tf2_ros::TransformListener> (*mTFBuffer);
+  ```
+- **```lookTransform```**
+  ```cpp
+  geometry_msgs::msg::TransformStamped tfs = mTFBuffer->lookupTransform(
+      "toFrameRel", "fromFrameRel",
+      tf2::TimePointZero);
+  /** 
+   * param1： dst frame，string 按需制定
+   * param2： src frame，string 按需制定
+   * param3： time,上述tf2::TimePointZero 表示使用latest message
+   */
+  ```
+  PS:一般和try catch一起使用
+  ```cpp
+  try{
+    lookTransform();
+  } catch (const tf2::TransformException & ex){
+    RCLCPP(this->get_logger(),"%s",ex.what());
+    return;
+  }
+  ```
+- **使用tfs数据**
+  ```
+  tfs.transform.rotation.xxx
+  tfs.transform.translation.xxx
+  ```
+  
+
+<br>
+
+---
+**消息滤波器 MessageFilter** 
+- **```include```**
+  ```cpp
+  //ps
+  #include "geometry_msgs/msg/point_stamped.hpp" //get point msg
+  //mfs
+  #include "message_filters/subscriber.h" //F
+  //tf2_ros
+  #include "tf2_ros/buffer.h"
+  #include "tf2_ros/create_timer_ros.h"
+  #include "tf2_ros/message_filter.h"
+  #include "tf2_ros/transform_listener.h"
+  //tf2
+  #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
+  ```
+- **```statement variables```**
+  - tar_frame
+  - tf2_buffer
+  - listener
+  - mfs_sub
+  - tf2_filter
+  ```cpp
+  std::string m_tar_frame_;
+  std::shared_ptr<tf2_ros::Buffer> m_tf2_buffer_;
+  std::shared_ptr<tf2_ros::TransformListener> m_tf2_listener_;
+  message_filters::Subscriber<geometry_msgs::msg::PointStamped> m_point_sub_;
+  std::shared_ptr<tf2_ros::MessageFilter<geometry_msgs::PointStamped>> m_tf2_filter_;
+  ```
+
+- **```target_frame```**
+  ```cpp
+  m_tar_frame_  = this->declare_parameter<std::string>("target_frame","myTarName");
+  ```
+- **```init buffer```**
+  ```cpp
+  m_tf2_buffer = std::make_shared<tf2_ros::Buffer>(this->get_clock());
+  
+  //Create the timer interface before call to waitFoTransform to avoid tf2_ros::CreateTimerInterfaceException exception
+  auto timer_interface = std::make_shared<tf2_ros::CreateTimerROS>(
+    this->get_node_base_interface(),
+    this->get_node_timers_interface();
+    );
+  m_tf2_buffer_.setCreateTimerInterface(timer_interface);
+  ```
+- **```init listenr```**
+  ```cpp
+  m_tf2_listener_ = std::make_shared<tf2_ros::TransformListener>(*m_tf2_buffer_);
+  ```
+- **```mfs_sub.subcribe()```**
+  ```cpp
+  m_point_sub_.subscribe(this,"topic name");
+  ```
+- **```init tf2_filter```**
+  ```cpp
+  //define timeout
+  std::chrono::duration<int> buffer_timeout(1);
+  m_tf2_filter_ = std::make_shared<tf2_ros::MessageFilter<geometry_msgs::msg::PointStamped>>(
+    m_point_sub_,   //F,subscriber
+    *m_tf2_buffer,  //buffer
+    m_tar_frame_,   //tar frame
+    100,            //queue_size
+    this->get_node_logger_interface(),  //logger
+    this->get_node_clock_interface(),//clock
+    buffer_timeout//buffer timeout
+  );
+  ```
+- **```callback绑定```**
+  ```cpp
+  m_tf2_filter_->registerCallback(&MyClassName::myMsgCallBackName,this);
+
+  private:
+  void myMsgCallBackName(const geometry_msgs::msg::PointStamped::SharedPtr point_ptr){
+    geometry_msgs::msg::PointStamped point_out;
+    try {
+        tf2_buffer_->transform(*point_ptr, point_out, m_target_frame_);
+        RCLCPP_INFO(
+                this->get_logger(), "Point of turtle3 in frame of turtle1: x:%f y:%f z:%f\n",
+                point_out.point.x,
+                point_out.point.y,
+                point_out.point.z);
+    } catch (const tf2::TransformException & ex) {
+        //TODO: RCLCPP_WARN()...
+    }
+  }
+  
+  ```
+
+<br>
+
+---
+**异常处理 Exceptions**   
+一般来看是这样使用的
+```cpp
+try{
+  //...
+}
+catch(const tf2::XxxxExpection ex){
+  RCLCPP_INFO(this->get_logger(), "%s",ex.what();
+}
+```
 
 
 
@@ -866,6 +1369,8 @@ def generate_launch_description():
 
 
 
+<br>
+<br>
 
 ## 4 建模与仿真
 ### 4.1 建模
@@ -990,6 +1495,10 @@ ros2 interface show gazebo_msgs/srv/SpawnEntity
 - 输出参数
   - topic : odom
   - topic type : nav_msgs/msg/Odometry
+
+
+
+
 
 **如果有以下问题**
 ```
