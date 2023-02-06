@@ -1,9 +1,25 @@
-# GIT
-## GitHub remote
+# 常用
+## **markdown index**
+markdown文档写太多，标题太分散，自动标号插件。  vscode应用商城搜索```markdown-index```插件，install然后```ctrl+shift+P```，执行```markdown add index```命令即可编号。
+
+## **dpkg**
+```bash
+# 安装
+sudo dpkg -i XXX.deb 
+```
+
+## **find**
+```bash
+sudo find / -iname "*opencv*" # 正则表达式匹配
+sudo find / -iwholename "*opencv2/core.hpp*" # 文件全程
+```
+
+# **GIT**
+## **GitHub remote**
 ```
 https://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@github.com/melancholyi/xxxx.git
 ```
-## 删除本地仓库
+## **删除本地仓库**
 ```bash
 find . -name ".git" | xargs rm -Rf
 ```
@@ -25,23 +41,24 @@ find . -name ".git" | xargs rm -Rf
 - unique_ptr对象包装一个原始指针，并负责其生命周期
 
 
-# minipc安装ubuntu和环境配置记录
+# **minipc安装ubuntu和环境配置记录**
 [参考链接](https://blog.csdn.net/weixin_42915934/article/details/115212636)
-## 1 制作启动U盘
-### 1.1 UltraISO
-### 1.2 Ubuntu镜像下载
+## **制作启动U盘**
+### **UltraISO**
+### **Ubuntu镜像下载**
 [清华开源镜像站](https://mirrors.tuna.tsinghua.edu.cn/ubuntu-releases/)
-## 
-## 2 安装
+
+## **ubuntu安装**
 - 密码:sentry
-### 2.1 Boot
+### **Boot**
 F2 然后设置U盘启动为首选项，F10退出
-### 2.2 安装
+### **安装选项**
 - 语言选择english
 - 选择最小安装
 - 清楚磁盘并安装
 - 时区选择上海
-## 3 环境配置
+
+## **ubuntu环境配置**
 修改密码
 ```bash
 sudo passwd
@@ -50,7 +67,7 @@ sudo passwd
 ```bash
 sudo apt-get update
 ```
-安装ROS
+安装ROS2
 ```bash
 fishros 一键安装
 ```
@@ -64,8 +81,17 @@ sudo pip install rosdepc
 sudo rosdepc init
 sudo rosdepc update
 ```
-vscode远程连接方法  
-**ssh服务器端**，也就是小电脑端
+
+## **vscode配置**
+### 扩展安装
+- Remote - SSH
+- C/C++
+- CMake
+- C/C++ Extension Pack
+- ROS2
+
+### **SSH-Remote连接**  
+**ssh服务器端配置**，也就是小电脑端
 ```bash
 # ssh远程连接 服务器包安装
 sudo apt install openssh-server
@@ -78,23 +104,23 @@ Port 22
 PermitRootLogin yes     # 源文件中为#注释起来的，需要打开注释，并修改为yes
 PubkeyAuthentication yes # 源文件中为#注释起来的，需要打开注释，并修改为yes
 ```
-ssh客户端，VSCODE自己电脑端
+**ssh客户端**，VSCODE自己电脑端
 - 扩展， Remote-ssh安装
 - ctrl + shift + p 选择Remote-SSH : Connect to Host
-- 添加新的ssh,格式为 ssh -p 《portnum》 username@hostname
+- 添加新的ssh,格式为 ssh -p 《portnum》 username@hostname,such as : ```ssh -p 22 scurm@sentry```
 - 然后配置文件 .ssh/config
 - 修改 HostName 的后面东西为小电脑的ip地址
 
 
 
 # ROS2及其他工具安装方案
-## 1 ROS2安装
+## ROS2安装
 ```
 wget http://fishros.com/install -O fishros && . fishros
 ```
-## 2 rosdep  
+## rosdep  
 rosdep是一个ros的包管理器，自动配置工具包依赖  
-### 2.1 安装与使用
+### 安装
 ```bash
 # 因为rosdep使用的国外网站进行更新，如果没有代理的话很难更新成功，所以可以按照以下步骤，使用国内小鱼这个人开发的一个 rosdepc工具
 
@@ -108,13 +134,13 @@ sudo apt-get install python3-pip
 sudo pip install rosdepc
 ```
 [rosdepc安装方案连接](https://zhuanlan.zhihu.com/p/398754989)  
-### 2.2 使用
+### 使用
 ```bash
 # 初始化和更新
 sudo rosdepc init
 sudo rosdepc update
 ```
-### 2.3 补全依赖
+### 补全依赖
 rosdep的主要用途是安装工作空间中ros包的依赖，首先切换到工作空间下，然后运行下述命令即可安装该工作空间的所有依赖：
 ```bash
 rosdep install --from-paths src --ignore-src -r -y
@@ -187,14 +213,14 @@ conda env remove -n envName
 ```
 
 
-# ubuntu problem solution
-- 1 连不上网
+# problem solution
+## **连不上网**
 ```
 sudo nmcli networking off
 sudo nmcli networking on
 sudo service network-manager restart
 ```
-- 2 扩展显示屏G掉  
+## **扩展显示屏G掉**  
 **!!!注意事项**：不要在ubuntu情况下，直接拔掉HDMI线  
 解决方案：**拔掉HDMI**，重新安装驱动  
 ![img](./noteSrc/Problem1-driver.png)
@@ -208,6 +234,52 @@ xrandr --output <mainScreenName> --left-of  <slaverScreenName> --auto   # 将扩
 xrandr --output <mainScreenName> --same-as <slaverScreenName> --auto    # 设置双屏幕显示
 
 ```
+## **没有声音--Dummy Output或伪输出**(2023/1/25)
+- 首先是问题描述，打开 Settings -> Sound -> Output栏，若显示```dummy output```,则可按下步骤解决
+- 终端命令
+  ```
+  echo "options snd-hda-intel dmic_detect=0" | sudo tee -a /etc/modprobe.d/alsa-base.conf
+
+  echo "blacklist snd_soc_skl" | sudo tee -a /etc/modprobe.d/blacklist.conf
+  ```
+- 重启
+
+## Vofa+无法启动
+报错：```libcrypto.so.1.1: cannot open shared object file: No such file or directory ```  
+解决：安装libcrypto.so.1.1，回退显驱
+```bash
+wget https://www.openssl.org/source/openssl-1.1.0k.tar.gz
+
+tar xvf openssl-1.1.0k.tar.gz
+
+cd openssl-1.1.0k
+
+./config
+
+make -j`nproc`
+
+sudo make install
+
+sudo ln -s /usr/local/lib/libcrypto.so.1.1 /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1
+```
+
+### **vscode打开ROS2工程**
+直接打开，但是可能会出现.hpp和.h找不到的问题，这里需要设置include path。 `setting-->搜索 include Path-->Add Item`  
+一般包含以下头文件模块
+- ROS：`/opt/ros/galactic/include`
+- opencv-ROS自带`/usr/include/opencv4`
+- 自己的package.例如:`~/scurm23_sentry_ws/src/wit_imu_driver/include`
+- 自己定义的interface hpp
+  这个位置和其他不太一样，需要在ws目录中的install中寻找,例如:
+  `~/scurm23_sentry_ws/install/auto_aim_interfaces/include`
+![img](./noteSrc/problem/problem-vscode_includePath.png)
+
+## cmake-opencv
+```cmake
+find_package(OpenCV REQUIRED)
+target_link_libraries(test ${OpenCV_LIBS})
+```
+
 # 库安装方法记录
 ## 1 ceres-solver （RM23 v2.1.0）
 - 安装依赖
@@ -228,13 +300,13 @@ sudo make install
 ```
 
 
-# ROS2学习笔记
-## 1 注意事项
+# **ROS2学习笔记**
+## **注意事项**
 - makefile只支持TAB，不支持四空格代替
 ```
 makefile:2: *** missing separator.  Stop.
 ```
-## 2 功能包和工作空间
+## **功能包和工作空间**
 - ros2 pkg ... 
 ```
 create       Create a new ROS 2 package
@@ -263,9 +335,9 @@ ros2 pkg prefix <package-name>
 ```
 ros2 pkg xml turtlesim
 ```
-## 3 colcon 
+## **colcon** 
 编译工具
-- only build one package
+- **only build one package**
 ```
 colcon build --package-select <package_name>
 ```
@@ -273,7 +345,7 @@ colcon build --package-select <package_name>
 ```
 colcon build --package-select <package_name> --cmake-args -DBUILD_TESTING=0
 ```
-- test
+- **test**
 ```
 colcon test
 ```
@@ -293,9 +365,9 @@ colcon build --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 ```
 ---
-## 4 topic
+## **topic**
 topic无返回，适合于单向或者大量数据传递
-### ros2 topic 
+### **ros2 topic** 
 使用的demo
 ```bash
 ros2 run demo_nodes_py listener
@@ -314,17 +386,17 @@ Commands:
   pub    Publish a message to a topic 
   type   Print a topic's type
 ```
-- ros2 topic bw 
+- **ros2 topic bw**
 ```
 ros2 topic bw <topic_name>
 ```
-- ros2 topic delay
+- **ros2 topic delay**
 ```
 ros2 topic delay <topic_name>
 ```
-- ros2 topic list
-- ros2 topic list -t （增加消息类型）
-- ros2 topic info <topic_name>
+- **ros2 topic list**
+- **ros2 topic list -t （增加消息类型）**
+- **ros2 topic info <topic_name>**
 ```
 ros2 topic info /chatter
 melancholycy@super:~$ ros2 topic info /chatter
@@ -332,8 +404,8 @@ melancholycy@super:~$ ros2 topic info /chatter
     Publisher count: 1
     Subscription count: 1
 ```
-- ros2 topic echo <topic_name>
-- ros2 topic pub
+- **ros2 topic echo <topic_name>**
+- **ros2 topic pub**
 ```
 ros2 topic pub /chatter std_msgs/msg/String 'data: "123"'
 # 上面因为listener是py格式，因此发送时是字典形式
@@ -343,10 +415,10 @@ ros2 topic pub /chatter std_msgs/msg/String 'data: "123"'
 ros2 topic info /chatter
 ```
 ---
-## 5 server
+## **server**
 C/S 模型，也可称为 request / response 模型  
 服务是双向的，client发送请求，server响应请求。
-- ros2 service -h
+- **ros2 service -h**
 ```
 Commands:
 call  Call a service
@@ -360,7 +432,7 @@ type  Output a service's type
 ros2 run examples_rclpy_minimal_service service
 ```
 ---
-- ros2 service list  
+- **ros2 service list**  
 列出现有服务和一些参数get和set方法，示例如下
 ```
 melancholycy@super:~$ ros2 service list
@@ -374,7 +446,7 @@ melancholycy@super:~$ ros2 service list
 ```
 ---
 
-- ros2 service type <service_name>  
+- **ros2 service type <service_name>**  
   查看服务接口类型,然后在可以调用他
 ```
 ros2 service type /add_two_ints
@@ -384,14 +456,14 @@ example_interfaces/srv/AddTwoInts
 ```
 ---
 
-- ros2 service call ...  
+- **ros2 service call ...**  
 手动调用服务
 ```
 ros2 service call /add_two_ints example_interfaces/srv/AddTwoInts "{a: 5,b: 50}"
 ```
 ---
 
-- ros2 service find
+- **ros2 service find**
 作用与type相反，通过接口类型寻找服务名称
 ```
 ros2 service find example_interfaces/srv/AddTwoInts
@@ -399,7 +471,7 @@ ros2 service find example_interfaces/srv/AddTwoInts
 
 ---
 
-## 6 message
+## **message**
 topic的publisher和subscriber使用msg通信，下面列出ROS2中自带和常见的message，用作记录和后续查阅  
 常见message
 - **时间相关**   
@@ -420,8 +492,8 @@ topic的publisher和subscriber使用msg通信，下面列出ROS2中自带和常�
 
 
 # ROS2 Humble code usage note
-## 1 创建WS和node
-### 1.1 创建WorkSpace和package
+## 创建WS和node
+### 创建WorkSpace和package
 ```shell
 cd myCode/RM/
 mkdir -p scu_sentry_ws
@@ -429,7 +501,7 @@ cd scu_sentry_ws
 ros2 pkg create <package_name> --build-type ament_cmake --dependencies rclcpp
 touch <package_name>/src/<cpp_name>.cpp
 ```
-### 1.2 创建节点模板
+### 创建节点模板
 ```cpp
 #include "rclcpp/rclcpp.hpp"
 
@@ -458,7 +530,7 @@ int main(int argc, char **argv)
 }
 ```
 
-### 1.3 修改CMakeLists.txt
+### 修改CMakeLists.txt
 ```cmake
 add_executable(<exe_name> src/<cpp_name>.cpp)
 ament_target_dependencies(<exe_name> rclcpp)
@@ -468,20 +540,31 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 ```
-### 1.4 colcon编译
+### colcon编译
 ```shell
 cd myCode/RM/scu_sentry_ws/
 colcon build --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 source install/setup.bash
 ```
-### 1.5 clion打开
+### clion打开
 ```
 # 打开工程
 file-->open-->scu_sentry_ws/build/compile_commands.json
 # 修改文件主目录
 Tools-->Compilation Database-->Change Project Root
 ```
-### 1.6 rclcppNode API Usage
+### **vscode打开**
+直接打开，但是可能会出现.hpp和.h找不到的问题，这里需要设置include path。 `setting-->搜索 include Path-->Add Item`  
+一般包含以下头文件模块:
+- ROS：`/opt/ros/galactic/include`
+- opencv-ROS自带：`/usr/include/opencv4`
+- 自己的package. such as：`~/scurm23_sentry_ws/src/wit_imu_driver/include`
+- 自己定义的interface hpp
+  这个位置和其他不太一样，需要在ws目录中的install中寻找
+  `~/scurm23_sentry_ws/install/auto_aim_interfaces/include`
+
+
+### rclcppNode API Usage
 ```cpp
 #include "rclcpp/rclcpp.hpp"
 
@@ -500,11 +583,11 @@ int main(int argc, char** argv){
 }
 ```
 
-## 2 Basic Usage
-### 2.1 Topic 
+## **Basic Usage**
+### **Topic** 
 topic --- message 打交道
 ![img](./noteSrc/ROS2ComStructChart.png)
-#### 2.1.1 导入消息接口message
+#### **导入消息接口message**
 - CmakeLists.txt 添加
 ```cmake
 # 这里的std_msgs为内置消息类型，以下仅作为范例，然后其他需要的可以进行更换
@@ -523,7 +606,7 @@ ament_target_dependencies(<cpp_name> rclcpp std_msgs)
 ```
 colcon build --packages-select <package_name> --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 ```
-#### 2.1.2 publisher class example
+#### **publisher class example**
 ```cpp
 class cTopicPublisher : public rclcpp::Node
 {
@@ -553,7 +636,7 @@ private:
 
 };
 ```
-#### 2.1.3 subscriber class example code
+#### **subscriber class example code**
 ```cpp
 class cTopicSubscriber : public rclcpp::Node{
     using subMsgType = std_msgs::msg::String;
@@ -572,10 +655,10 @@ private:
     rclcpp::Subscription<std_msgs::msg::String>::SharedPtr mCmdSubscriber;
 };
 ```
-### 2.2 Service 
+### **Service** 
 service -- interface 打交道  
 ![img](./noteSrc/ROS2ComStructChart.png)
-#### 2.2.1 添加interface配置
+#### **添加interface配置**
 - cmakelist
 ```cmake
 # 1 find package 
@@ -589,7 +672,7 @@ ament_target_dependencies(<exe_name> rclcpp <interface_pkg_name>)
 ```xml
 <depend> service_pkg_name </depend>
 ```
-#### 2.2.2 server code api
+#### server code api
 - 1 declaration server sharedptr
 ```cpp
 //1 <interface type> 一般格式为 serviceType::srv::interfaceName
@@ -613,7 +696,7 @@ mService = this->create_service<serviceType>(
         std::bind(&className::handleFunName,this,std::placeholders::_1,std::placeholders::_2)
         );
 ```
-#### 2.2.3 client code api
+#### client code api
 以下such as : serviceType <==> example_interfaces::srv::AddTwoInts
 - 1 statement client
 ```cpp
@@ -647,13 +730,13 @@ mClient = this->create_client<serviceType>("srv_name");
 ```c++
 node->sendRequestFunName(type param, ....)
 ```
-### 2.3 interface （custom)
+### **interface** （custom)
 创建自己的msg和srv格式消息
-#### 2.3.1 create pkg
+#### **create pkg**
 ```shell
 ros2 pkg create --build-type ament_cmake pkgname_interface --dependencies rosidl_default_generators 
 ```
-#### 2.3.2 create msg and srv
+#### **create msg and srv**
 ```shell
 mkdir srv
 mkdir msg
@@ -661,7 +744,7 @@ touch srvName.srv
 touch msgName.msg
 # 编写即可
 ```
-#### 2.3.3 config
+#### **config**
 **CMakeList.txt**
 ```cmake
 # interface adding
@@ -702,12 +785,12 @@ ros2 pkg create example_robot_topicandsrv --build-type ament_cmake --dependencie
 //server处理函数 param in：
 //std::shared_ptr<robot_interface::srv::MoveRobot_Request> request
 ```
-### 2.4 param
+### param
 
-### 2.5 action
+### action
 
-### 2.6 launch
-#### 2.6.1 语法
+### **launch**
+#### 语法
 
 ```python
 # 目前最常用的
@@ -735,7 +818,7 @@ def generate_launch_description():
         ),
     ])
 ```
-#### **2.6.2 dependencies**
+#### **dependencies**
 - package.xml
   ```xml
   <exec_depend>launch</exec_depend>
@@ -748,8 +831,8 @@ def generate_launch_description():
   ```
 
 
-## **3 Intermediate Usage**
-### **3.1 TF2**
+## **Intermediate Usage**
+### **TF2**
 2023/1/21记录，现在ROS2的TF2的教程比较少，官方和网上资源也是比较少，看完ROS2官方教程后可以参考ros1的documents多了解一些，[ROS1TF2Documents链接](http://wiki.ros.org/tf2)  
 除此之外，记住这句话：```A frame is a coordinate system```（TF2中将坐标系称为frame，且一般使用**right-handed**）  
 tf2简介，tf是transform的简称，2是第二代，tf1已经被弃用。tf2主要有以下几个```namespace``` （ROS1 wiki内）
@@ -779,24 +862,62 @@ tf2简介，tf是transform的简称，2是第二代，tf1已经被弃用。tf2�
 |exceptions.h||
 |||
 
-#### **3.1.1 安装tf包**
+#### **安装tf包**
 自动识别当前ROS2版本：```$(printenv ROS_DISTRO)``` ---> ```humble``` or ```forxy``` or ```galactic```
 ```bash
 sudo apt-get install ros-$(printenv ROS_DISTRO)-turtle-tf2-py ros-$(printenv ROS_DISTRO)-tf2-tools ros-$(printenv ROS_DISTRO)-tf-transformations
 ```
-#### **3.1.2 TF2工具**
-- **view_frames**  
-  frames和broadcast图形可视化
-  ```bash
-  ros2 run tf2_tools view_frames
-  ```
-- tf2_echo  
-  播报两个frame之间的姿态
-  格式：```ros2 run tf2_ros tf2_echo [reference_frame] [target_frame]```
-- rviz
+#### **TF2工具**
+
+##### **view_frames**  
+frames和broadcast图形可视化
+```bash
+ros2 run tf2_tools view_frames
+```
+
+##### **tf2_echo**  
+播报两个frame之间的姿态转换
+格式：```ros2 run tf2_ros tf2_echo [reference_frame] [target_frame]```  
+&emsp;&emsp;这个```tf2_echo node```会不断打印```[target_frame]坐标系```相对于```[reference_frame]坐标系```的transform关系.  
+示例 :
+```ros2 run tf2_ros tf2_echo world turtle1```   
+运行的turtlesim仿真,其对应关系为 :   
+```refFrame --> world```   
+```tarFrame --> turtle1```   
+![img](./noteSrc/CoordinateTransformation/tf2_echo-turtlesim.png)  
+
+&emsp;&emsp;如上图所示，窗口为**WorldFrame**(世界坐标系)，用红色标出了```X-Axis```和```Y-Axis```，```Z-Axis```垂直向上(Right-Headed)，原点在左下角。  
+&emsp;&emsp;Turtle1坐标系的原点为处于中间的小乌龟，小乌龟头朝向是```X-Axis```,```Y-Axis```和```Z-Axis```直接通过右手坐标系确定，可以看到**Turtle1Frame**(乌龟坐标系)相对**WorldFrame**(世界坐标系)做了**平移**+**旋转**的刚体变换，从而产生了transfrom变换关系，tf2_echo广播transform格式如下所示 : 
+![img](./noteSrc/CoordinateTransformation/tf2_echo.png)
+&emsp;&emsp;通过该图具体数据可得到**turtle1Frame**相对**worldFrame**平移了```[5.544, 5.544, 0.000]```(分别为x y z轴)，旋转变换:```[0.000，0.000，134.760]```绕```x```和```y```轴旋转了0°。绕Z轴旋转了```134.760°```，但是欧拉角表示旋转可能会导致万向节死锁，因此常用的是**四元数旋转**或者**旋转矩阵旋转**，但是矩阵可以扩展为 齐次式矩阵，也就是最后的 **$Matrix_{4*4}$**.   
+&emsp;&emsp;同一个点在两个坐标系中的表示之间的关系如下:  
+- **平移关系：**$Position_{world} = Translation + Position_{turtle1}$  
+- **旋转关系：**  
+  $Position_{world} = Rotation_{Mat} *  Position_{turtle1}$  
+  or  
+  $Position_{world} = Rotation_{quat} *  Position_{turtle1}$(四元数和POS变量相乘需要库支持，一般使用Eigen3库)  
+- **齐次-旋转+平移**  
+$\left[\begin{matrix}  
+    P_w \\
+    1 
+\end{matrix}\right] = Matrix_{RT} * \left[\begin{matrix}  
+    P_t \\
+    1 
+\end{matrix}\right]$ 
+
+
+
+
+
+**** 
+
+
+
+##### **rviz**
+
 ---
-#### **3.1.3 tf2 code**
-**常用接口：**
+#### **tf2 架构和代码理解**
+##### **常用接口：**
 - ```geometry_msgs/msg/TransformStamped```  
   这表示在header.stamp时从坐标帧header.frame_id到坐标帧child_frame_id的转换(当前---->child)  
   ```ros2 interface show geometry_msgs/msg/TransformStamped```
@@ -820,25 +941,26 @@ sudo apt-get install ros-$(printenv ROS_DISTRO)-turtle-tf2-py ros-$(printenv ROS
             float64 z 0
             float64 w 1
     ```
+
 - ```tf2_msgs/msg/TFMessage```   
   ```bash
   ros2 interface show tf2_msgs/msg/TFMessage
   # tfs数组
   geometry_msgs/TransformStamped[] transforms
   ```
-**```tf2_ros```-namespace:**  
-**TransformBroadcaster**    
+##### **```tf2_ros```:**  
+###### **TransformBroadcaster**    
 可以直接看一下源代码，```#include "tf2_ros/transform_broadcaster.h"```,本质上就是一个封装了topic-publisher和node的类，然后调用函数publish ```geometry_msgs::msg::TransformStamped```类型的数据。
 
 - 构造函数  ```TransformBroadcaster(TODO:Node ref)```
 - 广播函数   
   ``` void sendTransform(const geometry_msgs::TransformStamped & transform);```
 ---
-**StaticTransformBroadcaster**
+###### **StaticTransformBroadcaster**
 - 同TransformBroadcaster
 
 ---
-**Buffer**   
+###### **Buffer**   
 **源代码文件夹构成**   
 首先，说一下```buffer.cpp/h```这个文件夹构成  
 buffer部分应该是tf2-Listener最重要的一部分了，其与其他文件的关系如下图所示([截取自ROS1TF2文档](http://docs.ros.org/en/latest/api/tf2_ros/html/c++/buffer_8h.html)):
@@ -859,7 +981,9 @@ buffer是```tf2_ros```命名空间中的一个重要文件夹，通过阅读ROS1
 - **```tf2_ros/buffer_interface.h```**  
 
 ![img](./noteSrc/CoordinateTransformation/tf2-tf2_ros-buffer_interface.png)
-此文件是虚基类,定义了```tf2_ros```包中的Buffer类的对外接口interface，具有以下接口,函数详细说明见此[链接文档(ROS1TF2wiki)](http://docs.ros.org/en/latest/api/tf2_ros/html/c++/buffer__interface_8h_source.html):<center>
+此文件是虚基类,定义了```tf2_ros```包中的Buffer类的对外接口interface，具有以下接口,函数详细说明见此[链接文档(ROS1TF2wiki)](http://docs.ros.org/en/latest/api/tf2_ros/html/c++/buffer__interface_8h_source.html)
+
+Interface:<center>
 |函数名|作用|  
 |:---|:---|
 |```lookupTransform()```|两个重载版本|
@@ -883,7 +1007,7 @@ buffer是```tf2_ros```命名空间中的一个重要文件夹，通过阅读ROS1
 <br>
 
 ---
-**TransformListener**  
+###### **TransformListener**  
 本质就是一个topic-subscriber结点，具有以下重要的数据成员,可以看到其实就是一个结点对象，之后就是两个```TFMessage```的subscription，分别对应dynamic和static,在之后就是最重要的```tf2::BufferCore```了，他是比较重要的，担任了坐标转换的绝大部分工作，详情请见上方Buffer部分的笔记
 - **membership**
 ```cpp
@@ -901,7 +1025,7 @@ TransformListener类的public interface只有一个，那就是类的构造函�
 
 <br>
 
-**MessageFilter**  
+###### **MessageFilter**  
 ---
 **作用:**  
 **The ```tf2_ros::MessageFilter``` will take a subscription to any ROS 2 message with a header and cache it until it is possible to transform it into the target frame.**  
@@ -1071,7 +1195,7 @@ subscribe(nodePtr, topicName, qos, SubscriptionOptions);
 
 
 
-**Exceptions**  
+###### **Exceptions**  
 定义的这个exceptions都在```#include "tf2/exceptions.h"```这个文件夹中，tf2中定义了以下几个Exceptions.<center>
 |exception|功能|备注|
 |:---|:---|:---|
@@ -1087,10 +1211,10 @@ subscribe(nodePtr, topicName, qos, SubscriptionOptions);
 <br>
 <br>
 
-**Application**
+#### **Application**
 
 
-**静态转换广播器 StaticTranformBroadcaster**  
+##### **静态转换广播器 StaticTranformBroadcaster**  
 
 这个ros已经封装好了包，我们只需要调用即可。  
 cmd 格式:
@@ -1128,7 +1252,7 @@ def generate_launch_description():
 <br>
 
 ---
-**转换广播器 TranformBroadcaster**   
+##### **转换广播器 TranformBroadcaster**   
 - **include**  
 ```cpp
 #include "tf2_ros/transform_broadcaster.h"
@@ -1205,7 +1329,7 @@ def generate_launch_description():
 <br>
 
 ---
-**转换监听器 TranformListener** 
+##### **转换监听器 TranformListener** 
 - **```include```**
   ```cpp
   #include "geometry_msgs/msg/transform_stamped.hpp"
@@ -1262,7 +1386,7 @@ def generate_launch_description():
 <br>
 
 ---
-**消息滤波器 MessageFilter** 
+##### **消息滤波器 MessageFilter** 
 - **```include```**
   ```cpp
   //ps
@@ -1352,7 +1476,7 @@ def generate_launch_description():
 <br>
 
 ---
-**异常处理 Exceptions**   
+##### **异常处理 Exceptions**   
 一般来看是这样使用的
 ```cpp
 try{
@@ -1372,9 +1496,9 @@ catch(const tf2::XxxxExpection ex){
 <br>
 <br>
 
-## 4 建模与仿真
-### 4.1 建模
-#### 4.1.1 URDF
+## 建模与仿真
+### 建模
+#### URDF
 URDF（Unified Robot Description Format）统一机器人描述格式
 ```xml
 <!--主标签-->
@@ -1430,7 +1554,7 @@ material：材料
   <inertia ixx="0.0122666" ixy="0" ixz="0" iyy="0.0122666" iyz="0" izz="0.02"/>
 </inertial>
 ```
-#### 4.1.2 可视化URDF-RVIZ
+#### 可视化URDF-RVIZ
 ```cpp 
 TODO：这里太专一，后续总结好在补充
 ```
@@ -1445,7 +1569,7 @@ sudo apt install ros-$ROS_DISTRO-robot-state-publisher
 URDF-RVIZ可视化的node和topic rqt图形
 ![img](./noteSrc/rqt-graph-rvizCar.png)
 
-#### 4.1.3 Gazebo模型加载
+#### Gazebo模型加载
 - 安装gazebo-ros2插件
 ```shell
 sudo apt install ros-humble-gazebo-ros
@@ -1485,8 +1609,8 @@ ros2 interface show gazebo_msgs/srv/SpawnEntity
 ```
 然后可以使用rqt中的service caller调用服务加载模型
 
-### 4.2 gazebo仿真
-#### 4.2.1 仿真插件学习使用
+### gazebo仿真
+#### 仿真插件学习使用
 - 输入参数
   - 一系列的参数指定
 - 两轮差速控制器
@@ -1529,10 +1653,10 @@ sudo apt install ros-$ROS_DISTRO-gazebo-ros-pkgs
 ![img](./noteSrc/gazebo-LaserRviz.png)
 
 
-## 5 Navigation
-### 5.1 SLAM
-#### 5.1.1 Cartographer
-##### 5.1.1.1 安装
+## Navigation
+### SLAM
+#### Cartographer
+##### 安装
 编译安装
 ```shell
 # 安装cartographer
@@ -1572,11 +1696,13 @@ trajectory_builder_2d.lua
 trajectory_builder.lua
 ```
 
-# 相机模型
-## 相机坐标系
+# **相机模型**
+相机模型的原理和标定自行查阅文档和视频进行学习。推荐[北邮鲁鹏教授计算机视觉教程](https://www.bilibili.com/video/BV1nz4y197Qv?p=13&vd_source=4b919749e4033c3016c6c9503d7f3d52).  
+课件笔记在`CamerModel`文件夹中
+## **相机坐标系**
 ![img](./noteSrc/camera_coordinate_system.png)
 
-## mindvision配置过程
+## **mindvision配置过程**
 1 官网下载linux-SDK，[下载链接](https://www.mindvision.com.cn/rjxz/list_12.aspx?lcid=138)  
 2 解压进入文件夹，打开readme.pdf读完  
 3 运行install.sh
@@ -1606,27 +1732,123 @@ python3 grab.py
   
 自己工程中将linuxsdk中的include文件夹和lib文件夹中对应自己的平台对应的文件夹加入自己的工程，相当于src
 
+## **相机标定**
+相机标定的原理和目的自行搜索。  
+ROS2相机标定包,[参考标定教程链接](https://www.ncnynl.com/archives/202110/4707.html)      
+步骤:  
+**1 安装所需软件包**
+```bash
+sudo apt install ros-$(printenv ROS_DISTRO)-camera-calibration-parsers
+sudo apt install ros-$(printenv ROS_DISTRO)-launch-testing-ament-cmake
+sudo apt install ros-$(printenv ROS_DISTRO)-camera-info-manager
+```   
+**2 创建ws并clone与build源码**
+```bash
+mkdir calibration_ws
+cd calibration_ws/
+mkdir src
+cd src/
+git clone https://github.com/ros-perception/image_pipeline.git
+
+cd image_pipeline
+git checkout origin/$(printenv ROS_DISTRO)
+cd ~/calibration_ws/
+colcon build --symlink-install
+``` 
+**3 打印棋盘格**  
+棋盘格要求，8x10列，其中每个方格尺寸为15mm,如下图所示:
+![img](./noteSrc/CameraModel/%E6%A0%87%E5%AE%9A8x10-15mm.png)  
+该标定棋盘格pdf在`./CameraModel/标定8x10-15mm.pdf`路径下，可直接打印。  
+
+**4 启动相机发布图像**
+使用我们的相机图像ros pkg-`mindvision_camera`  
+```bash
+ros2 launch mindvision_camera mv_launch.py
+```  
+**5 启动标定节点exe**
+```
+source install/setup.bash 
+ros2 run camera_calibration cameracalibrator --size 7x9 --square 0.015 --ros-args --remap /image:=/image_raw --ros-args --remap camera:=/custom_camera
+```
+**6 成功启动之后显示以下**
+```bash
+Waiting for service camera/set_camera_info ...
+OK
+Waiting for service left_camera/set_camera_info ...
+OK
+Waiting for service right_camera/set_camera_info ...
+OK
+```
+**7 标定相机**  
+- 左右移动
+- 上下移动
+- 前后移动
+- 倾斜，分别向上、下、左和右
+四个进度条都变成绿色，`CALIBRATE`按钮变成绿色即可进行点击标定，标定结束后，`SAVE`  
+
+**8 参数保存路径**
+```
+/tmp/calibrationdata.tar.gz
+```
 
 
-# 串口通信
-## 查看设备名称  
+
+
+
+# **串口通信**
+## **查看设备名称**  
 ```bash
 ll /dev
 # 出现以下类似的就是成功识别
 crw-rw---- 1 root dialout 188, 0 Aug  3 21:46 /dev/ttyUSB0
 ```
-## 给予串口权限
+## **给予串口权限**
 ```bash
 sudo chmod 777 /dev/ttyUSB0 #按照自己的设备名字对ttyUSB0进行更改
 ```
-## 安装ch340驱动
-[ubuntu20.04-安装教程链接](https://blog.csdn.net/qq_27558597/article/details/117900705)
+## **串口名称绑定**
+每回启动，系统会为串口硬件起名称，但这个会和插入顺序和系统设定有关，因此每次会跳变，从而得改代码，因此直接绑定一个别名，就OK了。但是某个硬件插口就固定下来了，后续插入要注意插口。一般只插入一个的话，串口会命名为`ttyUSB0`,这里以`IMU`串口绑定为例。    
+  
+
+通过以下命令查看`ttyUSB0`的`KERNELS`硬件端口号
+```
+udevadm info --attribute-walk --name=/dev/ttyUSB0
+```
+![img](./noteSrc/SerialCom/serial-kernels.png)    
+
+创建`rule.d`文件
+```
+sudo vim /etc/udev/rules.d/77-ttyUSBLink.rules
+```
+编写文件,首先输入`I`进入`insert`模式,然后输入以下：
+```
+ACTION=="add",KERNELS=="3-2:1.0",SUBSYSTEMS=="usb", MODE:="0777", SYMLINK+="ttyIMU"
+```  
+输入完毕后，按下`ESC`退出insert模式，然后输入`:wq`退出vim编辑器  
+输入以下生效
+```
+sudo udevadm trigger
+```
+
+
+
+
+
+
+## **安装ch340驱动**
+[ubuntu20.04-安装教程链接](https://blog.csdn.net/qq_27558597/article/details/117900705)  
 但是Ubuntu22.04安装CH340的驱动时出现了一些问题，暂时搁置，下赛季更新
 
+
+<br>
+
+---
+
 # 坐标转换
-主要是相机坐标系和世界坐标系的转换，两者之间可以通过刚体运动(旋转和平移)进行转换，其中世界坐标系一般选用云台的IMU模块作为云台姿态获取方式,IMU可以选择C板或者外接IMU(WIT901C-TTL)
+
+主要是相机坐标系和世界坐标系的转换，两者之间可以通过刚体运动(旋转和平移)进行转换，其中世界坐标系一般选用云台的IMU模块作为云台姿态获取方式,IMU可以选择C板或者外接IMU(`WIT901C-TTL`)
 ## **坐标系**
-### 普通三维坐标系
+### **普通三维坐标系**
 ### **齐次坐标系**
 旋转矩阵和平移向量整合到一起的矩阵，称为齐次坐标系矩阵: <center> $Transform  = \left[\begin{matrix}
     R_{3*3} & T_{3*1}\\
@@ -1634,11 +1856,12 @@ sudo chmod 777 /dev/ttyUSB0 #按照自己的设备名字对ttyUSB0进行更改
 \end{matrix}\right]$ </center>
 其中$R$为旋转矩阵
 
-## **旋转与平移**
-### 旋转  
+## **刚体变换**
+### **旋转**  
 我们一般使用右手坐标系，如下图所示：
+![img](./noteSrc/CoordinateTransformation/right_hand_coordinate%20system.png)
 
-### **1.1 欧拉角**
+#### **欧拉角**
 | 角     | 旋转轴 | 方向                        |    
 |:------|:---:|:--------------------------|  
 | yaw   |  z  | 顺着z轴负方向看，xoy逆时针转动为正,顺时针为负 |  
@@ -1647,7 +1870,7 @@ sudo chmod 777 /dev/ttyUSB0 #按照自己的设备名字对ttyUSB0进行更改
 
 ![img](./noteSrc/CoordinateTransformation/rotation-eular.png)
 
-### **1.2 旋转矩阵**
+#### **旋转矩阵**
 旋转矩阵，是旋转的另一种表示方式，表示同一个点在两种坐标系之间的转换约束关系，绕三轴旋转分别对应三个旋转矩阵。
 - 绕x轴旋转 $\alpha$ 
 $$
@@ -1696,17 +1919,29 @@ $$
 旋转矩阵为:<center>$P_{A_{3*1}} = R(x,\alpha)*R(y,\beta)*R(z,\gamma) * P_{B_{3*1}}$ </center>
 
 
-### **1.3 四元数**
+#### **四元数**
 阿巴啊巴(此处省略N个字)，注意顺序 ：
 
 $q = w +x∗\vec{i}+y∗\vec{j}+z∗\vec{k}$
 
-PS-集中表现方式的转换库-python ```transforms3d```
+PS-测试使用时可以使用的转换库-python ```transforms3d```
 ```bash
 # 安装
 pip install transforms3d -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
- ## 2 23RMSentry
+
+ ## **23RMSentry坐标转换**
+
+<br>
+
+
+# **弹道模型**
+
+# **预测器-KF&EKF**
+
+# **导航工作**
+
+# **决策模块**
 
 
 
