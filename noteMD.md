@@ -17,11 +17,24 @@ sudo find / -iwholename "*opencv2/core.hpp*" # 文件全程
 # **GIT**
 ## **GitHub remote**
 ```
-https://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@github.com/melancholyi/xxxx.git
+https://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@github.com/melancholyi/xxxx.git
+```
+set remote token
+```
+git remote set-url origin https://<your_token>@github.com/<USERNAME>/<REPO>.git
 ```
 ## **删除本地仓库**
 ```bash
 find . -name ".git" | xargs rm -Rf
+```
+## **回退版本**
+```
+git reset --hard f42ab0a（版本号）
+```
+## **撤销git add 缓存**
+```
+git rm --cached -r <文件夹名称>
+git rm --cached <文件名称>
 ```
 
 # **CPP学习**
@@ -1844,7 +1857,7 @@ sudo udevadm trigger
 
 ---
 
-# 坐标转换
+# **坐标转换**
 
 主要是相机坐标系和世界坐标系的转换，两者之间可以通过刚体运动(旋转和平移)进行转换，其中世界坐标系一般选用云台的IMU模块作为云台姿态获取方式,IMU可以选择C板或者外接IMU(`WIT901C-TTL`)
 ## **坐标系**
@@ -1858,7 +1871,7 @@ sudo udevadm trigger
 
 ## **刚体变换**
 ### **旋转**  
-我们一般使用右手坐标系，如下图所示：
+我们一般使用右手坐标系,这个有几种表示方法，选择自己习惯的一种就行，如下图所示：
 ![img](./noteSrc/CoordinateTransformation/right_hand_coordinate%20system.png)
 
 #### **欧拉角**
@@ -1908,15 +1921,49 @@ R(z,\gamma) =
   \right] \tag{yaw}
 $$
 
-这里旋转矩阵的关系一定要搞清楚，他是将变换后的矩阵转变会原来的坐标系，这里就以绕Z轴旋转举个例子，原始坐标系成为A-坐标系，将其绕Z旋转$\theta$度(顺着Z轴负方向,逆时针旋转$\theta$)，然后得到了B-坐标系。旋转矩阵为R(z,$\theta$),那么两轴之间的坐标转换关系为: <center>$\left[\begin{matrix}
+这里旋转矩阵的关系一定要搞清楚，他是将变换后的矩阵转变会原来的坐标系，这里就以绕Z轴旋转举个例子，原始坐标系称为**A-坐标系**，将其绕Z旋转 **$\theta$** 度(顺着Z轴负方向,逆时针旋转 **$\theta$** )，然后得到了**B-坐标系**。旋转矩阵为**R(z,$\theta$)**,那么同一个`point`在两坐标系之间的坐标转换关系为: <center>$\left[\begin{matrix}
     x_A  \\ y_A \\ z_A
     \end{matrix}\right]$  = $R$(z,$\theta$) * 
     $\left[\begin{matrix}
     x_B  \\ y_B \\ z_B
     \end{matrix}\right]$</center>
 
-坐标系旋转有顺序，各轴具体的旋转矩阵根据旋转角度按照上面的矩阵进行计算得到，除了角度之外，三轴的旋转顺序也有很重要的影响，相同的角度而不同的旋转顺序也会导致不一样的旋转矩阵.例如这里使用ZYX的旋转顺序，将坐标系A转变到B.则
-旋转矩阵为:<center>$P_{A_{3*1}} = R(x,\alpha)*R(y,\beta)*R(z,\gamma) * P_{B_{3*1}}$ </center>
+&emsp;&emsp;坐标系旋转有顺序，各轴具体的旋转矩阵根据旋转角度按照上面的矩阵进行计算得到，除了角度之外，三轴的旋转顺序也有很重要的影响，相同的角度而不同的旋转顺序也会导致不一样的旋转矩阵.例如这里使用ZYX的旋转顺序，将坐标系A绕其自身坐标轴旋转，绕`Z轴`旋转 **$\gamma$** °、绕`Y轴`旋转 **$\beta$** °、绕`Z轴`旋转 **$\alpha$** °,转变为**B坐标系**，此过程中会产生三个旋转矩阵，他们分别为坐标系 **$R(x,\alpha)、R(y,\beta)、R(z,\gamma)$** .则旋转矩阵和两个坐标系坐标的转换关系如下:<center>$P_{A_{3*1}} = R(x,\alpha)*R(y,\beta)*R(z,\gamma) * P_{B_{3*1}}$ </center>
+
+这里举个例子:是经过实际验证的，可进行参考，IMU和相机摆放位置如下图所示:  
+![img](./noteSrc/CoordinateTransformation/example_cam_imu_tf.png)    
+可见cam绕自身坐标轴X逆时针转动90°、绕Z顺时针转动90°之后与imu坐标系重合，也就是imu相对相机绕X转动+90°、绕Z转动-90°。由此产生的旋转矩阵为  
+$R(x,+90°) = 
+ \left[
+ \begin{matrix}
+   1 & 0 & 0 \\
+   0 & 0 & -1 \\
+   0 & 1 & 0
+  \end{matrix}
+  \right]  
+  R(z,-90°) = 
+ \left[
+ \begin{matrix}
+   0 & 1 & 0 \\
+   -1 & 0 & 0 \\
+   0 & 0 & 1
+  \end{matrix}
+  \right]$  
+
+则总的旋转矩阵为:   
+$R_{mat} =R(x,+90°)*R(y,+0°)*R(z,-90°) =  \left[
+\begin{matrix}
+   0 & 1 & 0 \\
+   0 & 0 & -1 \\
+   -1 & 0 & 0\end{matrix}\right]$  
+  
+这个矩阵的含义是`imu to cam`，也就是$Point_{cam} = R_{mat}*Point_{imu}$  
+
+此矩阵与我是用kaliarimu和相机联合标定工具标定出的外参旋转矩阵一致，如下图所示，//TODO
+
+
+
+
 
 
 #### **四元数**
